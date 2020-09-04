@@ -251,6 +251,9 @@ func (c *Client) send(ctx context.Context, opt *sendOptions) (resp *Response, er
 
 	for i := 0; i <= c.RetryCount; i++ {
 		resp, err = c.doAPI(ctx, req, opt.result, !opt.disableCloseBody)
+		if err != nil {
+			fmt.Printf("cos-send:%d,%s,%+v\n", i, err.Error(), err)
+		}
 		if err != nil && strings.TrimSpace(err.Error()) == "net/http: TLS handshake timeout" {
 			continue
 		}
