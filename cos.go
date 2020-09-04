@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
-	"strings"
 	"text/template"
 
 	"strconv"
@@ -72,10 +71,9 @@ func NewBucketURL(bucketName, region string, secure bool) *url.URL {
 type Client struct {
 	client *http.Client
 
-	Host       string
-	UserAgent  string
-	BaseURL    *BaseURL
-	RetryCount int
+	Host      string
+	UserAgent string
+	BaseURL   *BaseURL
 
 	common service
 
@@ -90,7 +88,7 @@ type service struct {
 }
 
 // NewClient returns a new COS API client.
-func NewClient(uri *BaseURL, httpClient *http.Client, retryCount int) *Client {
+func NewClient(uri *BaseURL, httpClient *http.Client) *Client {
 	if httpClient == nil {
 		httpClient = &http.Client{}
 	}
@@ -105,15 +103,10 @@ func NewClient(uri *BaseURL, httpClient *http.Client, retryCount int) *Client {
 		baseURL.ServiceURL, _ = url.Parse(defaultServiceBaseURL)
 	}
 
-	if retryCount < 1 {
-		retryCount = 1
-	}
-
 	c := &Client{
-		client:     httpClient,
-		UserAgent:  userAgent,
-		BaseURL:    baseURL,
-		RetryCount: retryCount,
+		client:    httpClient,
+		UserAgent: userAgent,
+		BaseURL:   baseURL,
 	}
 	c.common.client = c
 	c.Service = (*ServiceService)(&c.common)
@@ -249,17 +242,8 @@ func (c *Client) send(ctx context.Context, opt *sendOptions) (resp *Response, er
 		return
 	}
 
-	for i := 0; i <= c.RetryCount; i++ {
-		resp, err = c.doAPI(ctx, req, opt.result, !opt.disableCloseBody)
-		if err != nil {
-			fmt.Printf("cos-send:%d,%s,%+v\n", i, err.Error(), err)
-		}
-		if err != nil && strings.TrimSpace(err.Error()) == "net/http: TLS handshake timeout" {
-			continue
-		}
-		return resp, err
-	}
-	return nil, nil
+	resp, err = c.doAPI(ctx, req, opt.result, !opt.disableCloseBody)
+	return
 }
 
 // addURLOptions adds the parameters in opt as URL query parameters to s. opt
